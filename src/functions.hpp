@@ -21,8 +21,11 @@ bool bernoulli(double value);
 double binDist(double N, double value);
 
 double norm(double x, double mu, double sigma); // à densité par rapport à la mesure de Lebesgue
+double normAB(double a, double b, double mu, double sigma);
+double normA(double x, double mu, double sigma);
 
-double gauss(double x); // à densité par rapport à la mesure de Lebesgue
+double normCR(double x); // à densité par rapport à la mesure de Lebesgue
+double normCRAB(double a, double b);
 
 double poisson(double k, double lambda);
 
@@ -30,7 +33,7 @@ double unif(double a, double b); // à densité par rapport à la mesure de Lebe
 
 double exponential(double value, double lambda); // à densité par rapport à la mesure de Lebesgue
 
-double geometric(double k, double p); // p is equal to the prob, for example, a dice has 6 faces so p = 1/6
+double geometric(int k, double p); // p is equal to the prob, for example, a dice has 6 faces so p = 1/6
 
 // Markov chain
 
@@ -44,7 +47,9 @@ int fact(int number);
 
 glm::vec3 applyColorBoid();
 
-glm::vec3 randomBoidPosition();
+double randomBoidPosition();
+
+glm::vec3 randomBoidPositions();
 
 glm::vec3 randomBoidVelocity();
 

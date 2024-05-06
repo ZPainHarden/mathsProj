@@ -1,5 +1,6 @@
 #pragma once
 #include <glimac/object_vertices.hpp>
+#include <string>
 #include <vector>
 #include "ObjectProgram.hpp"
 #include "glimac/common.hpp"

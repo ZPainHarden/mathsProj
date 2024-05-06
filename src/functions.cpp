@@ -18,13 +18,13 @@ double rand01()
 double randAB(auto a, auto b)
 {
     auto waiting = rand01();
-    return (a / 2) + waiting * (b - a);
+    return a + waiting * (b - a);
 }
 
 int randDiscreteAB(int a, int b)
 {
     auto waiting = randAB(a, b);
-    if (waiting + 0.5 < floor(waiting))
+    if (waiting + 0.5 < floor(waiting) + 1)
     {
         return floor(waiting);
     }
@@ -33,6 +33,11 @@ int randDiscreteAB(int a, int b)
 
 bool bernoulli(double value) // value should be between 0 and 1
 {
+    if (value < 0 || value > 1)
+    {
+        std::cout << "ERROR :  probability value is not between 0 and 1" << std::endl;
+        return false;
+    }
     return rand01() < value;
 }
 
@@ -48,14 +53,48 @@ double binDist(double N, double value)
 
 double norm(double x, double mu, double sigma)
 {
+    sigma = sqrt(sigma);
     return 1.0 / (sigma * sqrt(2.0 * M_PI)) * exp(-(pow((x - mu) / sigma, 2) / 2.0));
 }
 
-double gauss(double x)
+double normAB(double a, double b, double mu, double sigma)
+{
+    sigma = sqrt(sigma); // pour avoir l'écart-type
+    return normA(b, mu, sigma) - normA(a, mu, sigma);
+}
+
+double normA(double x, double mu, double sigma)
+{
+    // Calcul de l'intégrale de la densité de probabilité de -∞ à x
+    double z  = (x - mu) / (sigma * sqrt(2.0));
+    double t  = 1.0 / (1.0 + 0.3275911 * fabs(z));
+    double a1 = 0.254829592;
+    double a2 = -0.284496736;
+    double a3 = 1.421413741;
+    double a4 = -1.453152027;
+    double a5 = 1.061405429;
+
+    double erf  = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * exp(-z * z);
+    double sign = 1.0;
+    if (x < mu)
+    {
+        sign = -1.0;
+    }
+
+    // Fonction de répartition cumulative
+    return 0.5 * (1.0 + sign * erf);
+}
+
+double normCR(double x)
 {
     double mu    = 0;
     double sigma = 1;
-    return 1.0 / (sigma * sqrt(2.0 * M_PI)) * exp(-(pow((x - mu) / sigma, 2) / 2.0)), sigma;
+    return norm(x, mu, sigma);
+}
+
+double normCRAB(double a, double b)
+{
+    return normA(b, 0, 1) - normA(a, 0, 1);
 }
 
 double poisson(double k, double lambda)
@@ -72,19 +111,20 @@ double unif(double a, double b) //
     return 1 / (b - a);
 }
 
-double exponential(double value, double lambda)
+double exponential(double x, double lambda)
 {
-    if (value < 0)
+    if (x < 0)
     {
-        return 0;
+        return 0.0;
     }
-    return lambda * exp(-lambda * value);
+    return lambda * exp(-lambda * x);
 }
 
-double geometric(double k, double p)
+double geometric(int k, double p)
 {
-    if (k <= 0)
+    if (k <= 0 || p < 0 || p > 1)
     {
+        std::cout << "ERROR : wether k is not > 0, or p is not between 0 and 1";
         return 0.;
     }
     return p * pow((1 - p), (k - 1));
@@ -189,23 +229,31 @@ glm::vec3 applyColorBoid() // A MODIFIER AVEC SWITCH
     }
 }
 
-glm::vec3 randomBoidPosition()
+double randomBoidPosition()
 {
-    /*std::cout << "Test boidPosition()" << std::endl;
-    auto x = randDiscreteAB(-45, 45);
-    auto y = randDiscreteAB(-45, 45);
-    auto z = randDiscreteAB(-45, 45);
-    std::cout << "x: " << x << "    y: " << y << "  z: " << z << std::endl;*/
-    return {randDiscreteAB(-45, 45), randDiscreteAB(-45, 45), randDiscreteAB(-45, 45)};
+    double res     = 0;
+    auto   wait    = randAB(-3, 3);
+    auto   waiting = normCR(wait);
+    if (wait < 0)
+    {
+        res = -((1 - waiting / normCR(0)) * 45);
+    }
+    if (wait > 0)
+    {
+        res = (1 - waiting / normCR(0)) * 45;
+    }
+
+    std::cout << wait << "  " << waiting << "   " << res << std::endl;
+    return res;
+}
+
+glm::vec3 randomBoidPositions()
+{
+    return {randomBoidPosition(), randomBoidPosition(), randomBoidPosition()};
 }
 
 glm::vec3 randomBoidVelocity()
 {
-    /*std::cout << "Test boidVelocity()" << std::endl;
-    auto x = rand01() - 0.5;
-    auto y = rand01() - 0.5;
-    auto z = rand01() - 0.5;
-    std::cout << "x: " << x << "    y: " << y << "  z: " << z << std::endl;*/
     return {rand01() - 0.5, rand01() - 0.5, rand01() - 0.5};
 }
 

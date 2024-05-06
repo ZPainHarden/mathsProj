@@ -18,8 +18,7 @@ std::string Boids::getMarkovState()
     return markovState;
 }
 
-/*
-void Boids::updateMarkovState(std::string state)
+void Boids::updateMarkovState()
 {
     std::string currentState = getMarkovState();
     std::string nextState    = markov(currentState);
@@ -31,9 +30,8 @@ void Boids::updateMarkovState(std::string state)
     {
         removeBoid();
     }
-    markovState = currentState;
+    markovState = nextState;
 }
-*/
 
 void Boids::drawBoids(GLuint vao, GLsizei vertexCount, glm::vec3 scale, float rotation, glm::mat4 viewMatrix, glm::mat4 ProjMatrix, glm::mat4& NormalMatrix, ObjectProgram& ObjectProgram, GLuint textureID)
 {

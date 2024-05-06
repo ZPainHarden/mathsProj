@@ -1,11 +1,13 @@
 #include <imgui.h>
 #include <FreeflyCamera.hpp>
+#include <chrono>
 #include <glimac/common.hpp>
 #include <glimac/cone_vertices.hpp>
 #include <glimac/default_shader.hpp>
 #include <glimac/object_vertices.hpp>
 #include <glimac/sphere_vertices.hpp>
 #include <iostream>
+#include <thread>
 #include <vector>
 #include "glm/fwd.hpp"
 #define DOCTEST_CONFIG_IMPLEMENT
@@ -25,10 +27,10 @@ bool collisionDetectedDown  = false;
 bool collisionDetectedLeft  = false;
 bool collisionDetectedRight = false;
 
-bool is3D       = false;
+bool is3D       = false; // set to true to launch boids program
 bool mathTest   = false;
-bool testMarkov = true;
-bool runMaths   = true;
+bool testMarkov = true;  // set to true to have an example of the markov chain applied to the number of boids
+bool runMaths   = false; // set to true to test maths functions and laws
 
 void collisions(const auto& ctx, FreeflyCamera& camera, bool upPressed, bool downPressed, bool leftPressed, bool rightPressed, float move)
 {
@@ -84,6 +86,8 @@ void collisions(const auto& ctx, FreeflyCamera& camera, bool upPressed, bool dow
 
 int main()
 {
+    std::cout << std::endl;
+
     if (is3D)
     {
         // Initialisation de GLFW
@@ -152,6 +156,8 @@ int main()
 
         // Activer le test de profondeur du GPU
         glEnable(GL_DEPTH_TEST);
+
+        int timer = 0;
 
         // Declare your infinite update loop.
         ctx.update = [&]() {
@@ -269,13 +275,21 @@ int main()
             MVMatrix = glm::rotate(MVMatrix, -1.57f, {0.f, 1.f, 0.f});
 
             // rendu des objets
-            boids.drawBoids(vaoBoid, static_cast<GLsizei>(boids_sphere.size()), glm::vec3{1.f}, 1.57f, viewMatrix, ProjMatrix, NormalMatrix, ObjectProgram, textureID[0]);
             renderObject(vaoCube, static_cast<GLsizei>(cube.size()), glm::vec3{0.f, 0.f, 0.f}, glm::vec3{1.f}, 0.f, viewMatrix, ProjMatrix, NormalMatrix, ObjectProgram, textureID[1]);
             renderObject(vaoFloor, static_cast<GLsizei>(floor.size()), glm::vec3{0}, glm::vec3{1.f}, 0.f, viewMatrix, ProjMatrix, NormalMatrix, ObjectProgram, textureID[2]);
 
+            // rendu et update des boids
+            boids.drawBoids(vaoBoid, static_cast<GLsizei>(boids_sphere.size()), glm::vec3{1.f}, 1.57f, viewMatrix, ProjMatrix, NormalMatrix, ObjectProgram, textureID[0]);
             boids.updateBoids(alignment, cohesion, separation);
 
             glBindVertexArray(0);
+
+            timer++;
+            if (timer == 10)
+            {
+                timer = 0;
+                boids.updateMarkovState(); // When uncommented, stops the program when number of boids equals to 0
+            }
         };
 
         // Should be done last. It starts the infinite loop.
@@ -335,9 +349,9 @@ int main()
                   << std::endl;
 
         //          Test de la loi normale
-        std::cout << "  norm(x, mean, sigma) test:" << std::endl;
+        std::cout << "  norm(x, mean, sigma) test:" << std::endl; // sigma est la variance et pas l'ecart-type
         const double mean  = 2;
-        const double sigma = 0.5;
+        const double sigma = 0.25;
         std::cout << "mean chosen :" << mean << std::endl;
         std::cout << "sigma chosen :" << sigma << std::endl;
         for (int i = 0; i < 5; i++)
@@ -350,7 +364,7 @@ int main()
         std::cout << "  gauss(x) test:" << std::endl;
         for (int i = -2; i < 3; i++)
         {
-            std::cout << "for x = " << i << " gauss(x) = " << gauss(i) << std::endl;
+            std::cout << "for x = " << i << " gauss(x) = " << normCR(i) << std::endl;
         }
         std::cout << std::endl;
 
@@ -391,23 +405,29 @@ int main()
 
     if (testMarkov)
     {
-        // Test chaîne de Markov
-        std::cout << "  markov(std::string state) test:" << std::endl;
-        std::string initial   = "initial";
-        std::string nextState = markov(initial);
-        std::cout << "after one markov occurrence: " << initial << " turns into " << nextState << std::endl
-                  << std::endl;
-        ;
+        // Test de la chaîne de Markov avec N occurrences
+        int         N_boids       = 3; // Nombre de boids au départ du test
+        int         N_occurrences = 0; // Sert à compter en combien d'occurrence on arrive à la fin
+        std::string currentState  = "initial";
 
-        // Test chaîne de Markov avec N occurrences
-        std::cout << "  markov(std::string state) test with N occurrences:" << std::endl;
-        int N_2 = 10;
-        for (int i = 2; i < N_2 + 1; i++)
+        std::cout << "Test of the Markov chain with 3 boids in initial state" << std::endl;
+        while (N_boids > 0)
         {
-            nextState = markov(nextState);
-            std::cout << i << ": " << nextState << std::endl;
+            N_occurrences++;
+            currentState = markov(currentState);
+            if (currentState == "addOne")
+            {
+                N_boids++;
+            }
+            if (currentState == "removeOne")
+            {
+                N_boids--;
+            }
+            std::cout << currentState << " --> After " << N_occurrences << " occurrences: " << N_boids << " boid(s)" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        std::cout << "after " << N_2 << " markov occurrences: " << initial << " turns into " << nextState << std::endl;
+
+        std::cout << N_occurrences << " occurrences to remove all boids" << std::endl;
     }
 
     if (runMaths)
